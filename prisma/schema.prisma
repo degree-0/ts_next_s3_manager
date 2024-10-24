@@ -1,0 +1,46 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// a model to hold s3 tenant access keys and secrets id is uuid
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  accessKey String
+  secretKey String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Bucket    Bucket[]
+}
+
+// a model to hold s3 bucket names
+model Bucket {
+  id            String          @id @default(uuid())
+  name          String
+  tenantId      String
+  size          Int
+  itemCount     Int
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  Tenant        Tenant          @relation(fields: [tenantId], references: [id])
+  BucketSetting BucketSetting[]
+}
+
+// hold bucket settings
+model BucketSetting {
+  id        String   @id @default(uuid())
+  bucketId  String
+  setting   String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Bucket    Bucket   @relation(fields: [bucketId], references: [id])
+}
