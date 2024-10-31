@@ -1,12 +1,7 @@
+"use client";
 import { prisma } from "@/lib/prisma";
 import { listBuckets, getBucketTagging } from "@/lib/s3";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ChevronDown, MoreVertical } from "lucide-react";
+import { Accordion } from "@/components/ui/accordion";
 import { useEffect, useState } from "react";
 import { AddTenantDialog } from "@/components/app/add-tenant-dialog";
 import { Tenant } from "@/components/app/tenant";
@@ -20,30 +15,34 @@ const Home = async () => {
 
     // initialize the tenants state
     useEffect(() => {
-        prisma.tenant.findMany().then((data: any) => {
-            setTenants(data);
-        });
+        const fetchTentants = async () => {
+            try {
+                fetch("/api/tenants").then((response) => {
+                    response.json().then((data) => {
+                        setTenants(data);
 
-        tenants.forEach(async (tenant) => {
-            const buckets = await listBuckets(tenant.accessKey, tenant.secretKey);
-            buckets.Buckets?.forEach(async (bucket) => {
-                tenant.buckets.push({
-                  name: bucket.Name || "",
-                  size: 0,
-                  itemCount: 0,
-                })
+                        tenants.forEach((tenant: Tenant) => {
+                            const buckets = listBuckets(tenant.accessKey, tenant.secretKey).then((buckets) => {
+                                buckets.Buckets?.forEach(async (bucket) => {
+                                    tenant.buckets.push({
+                                        name: bucket.Name || "",
+                                        size: 0,
+                                        itemCount: 0,
+                                    });
+                                });
+                            });
+                        });
+                    });
+                });
+            } catch (error) {
+                console.error("Failed to fetch tenants:", error);
             }
-            console.log(buckets);
-        })
+        };
+
+        fetchTentants();
     }, []);
 
-    const buckets = await listBuckets(tenants?.accessKey || "", tenants?.secretKey || "");
-    const firstBucket = buckets.Buckets?.[0];
-
-    const tags = await getBucketTagging(tenants?.accessKey || "", tenants?.secretKey || "", firstBucket?.Name || "");
-    // foreach bucket, i would like to apply
-
-    console.log(buckets);
+    console.log(tenants);
 
     return (
         <div className="container mx-auto">
